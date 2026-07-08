@@ -30,17 +30,24 @@ Computer Start → Monitoring Engine Start → Process Monitor → File Monitor
 
 ---
 
+
 ## Setup
 
-```bash
+### Windows (PowerShell)
+
+```powershell
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python app.py
 ```
 
-## Run
+### Linux / macOS
 
 ```bash
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install -r requirements.txt
 python app.py
 ```
 
