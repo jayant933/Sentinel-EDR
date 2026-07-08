@@ -62,7 +62,7 @@ async function refreshProcesses() {
   const tbody = document.getElementById('processTableBody');
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No flagged processes yet - system looks quiet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No flagged processes yet - system looks quiet.</td></tr>';
     return;
   }
 
@@ -74,8 +74,45 @@ async function refreshProcesses() {
       <td><span class="badge badge--${r.threat_level}">${r.threat_level}</span></td>
       <td>${escapeHtml((r.reasons || '').split(';').join(', '))}</td>
       <td>${escapeHtml(r.virus_result)}</td>
+      <td>${quarantineButtonHtml(r)}</td>
     </tr>
   `).join('');
+}
+
+function quarantineButtonHtml(r) {
+  if (r.threat_level === 'Low') {
+    return '<span class="quarantine-na">&mdash;</span>';
+  }
+  return `<button class="quarantine-btn" onclick="handleQuarantine(${r.pid}, '${escapeHtml(r.process_name).replace(/'/g, "\\'")}')">Quarantine</button>`;
+}
+
+async function handleQuarantine(pid, name) {
+  try {
+    const check = await fetchJSON(`/api/process/${pid}/quarantine_check`);
+    if (!check.allowed) {
+      alert(`Cannot quarantine "${name}" (pid ${pid}):\n\n${check.reason}`);
+      return;
+    }
+  } catch (err) {
+    alert('Could not verify process before quarantine. It may have already exited.');
+    return;
+  }
+
+  const confirmed = confirm(
+    `Quarantine (terminate) "${name}" (pid ${pid})?\n\n` +
+    `This will attempt to close the process immediately. This action cannot be undone.`
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/process/${pid}/quarantine`, { method: 'POST' });
+    const data = await res.json();
+    alert(data.message);
+    tick(); // refresh dashboard immediately
+  } catch (err) {
+    alert('Quarantine request failed. See console for details.');
+    console.error(err);
+  }
 }
 
 const TYPE_LABEL = { process: 'PROC', file: 'FILE', network: 'NET', virus: 'VIRUS' };

@@ -230,6 +230,21 @@ td {
 .badge--Medium { background: rgba(240, 169, 59, 0.15); color: var(--risk-medium); }
 .badge--High { background: rgba(255, 77, 94, 0.15); color: var(--risk-high); }
 
+.quarantine-btn {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--risk-high);
+  background: rgba(255, 77, 94, 0.1);
+  border: 1px solid rgba(255, 77, 94, 0.4);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.quarantine-btn:hover { background: rgba(255, 77, 94, 0.22); }
+.quarantine-na { color: var(--text-muted); font-family: var(--font-mono); }
+
 .panel--log { grid-column: 1; }
 .panel--alerts { grid-column: 2; }
 

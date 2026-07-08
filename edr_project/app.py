@@ -15,6 +15,7 @@ from flask import Flask, jsonify, render_template, Response
 
 import database
 import report_generator
+import quarantine
 from monitor_engine import MonitorEngine
 
 app = Flask(__name__)
@@ -77,6 +78,18 @@ def report_pdf():
         mimetype="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@app.route("/api/process/<int:pid>/quarantine_check")
+def api_quarantine_check(pid):
+    return jsonify(quarantine.suggest_quarantine(pid))
+
+
+@app.route("/api/process/<int:pid>/quarantine", methods=["POST"])
+def api_quarantine(pid):
+    result = quarantine.quarantine_process(pid)
+    status = 200 if result["success"] else 409
+    return jsonify(result), status
 
 
 if __name__ == "__main__":
