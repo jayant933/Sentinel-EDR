@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL &mdash; Endpoint Threat Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 40 40" width="28" height="28">
+      <circle cx="20" cy="20" r="18" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" opacity="0.4"/>
+      <circle cx="20" cy="20" r="12" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" opacity="0.7"/>
+      <circle cx="20" cy="20" r="3" fill="var(--accent-cyan)"/>
+      <line class="radar-sweep" x1="20" y1="20" x2="20" y2="2" stroke="var(--accent-cyan)" stroke-width="1.5"/>
+    </svg>
+    <span class="brand-name">SENTINEL</span>
+    <span class="brand-sub">Endpoint Threat Monitor</span>
+  </div>
+  <div class="status">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Monitoring active</span>
+    <span class="status-clock" id="clock">--:--:--</span>
+    <a class="report-btn" href="/report/csv">Export CSV</a>
+    <a class="report-btn report-btn--primary" href="/report/pdf">Export PDF</a>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- Overview HUD cards -->
+  <section class="hud-row">
+    <div class="hud-card">
+      <span class="hud-label">Running Processes</span>
+      <span class="hud-value" id="statTotalProcesses">&mdash;</span>
+    </div>
+    <div class="hud-card">
+      <span class="hud-label">Tracked / Flagged</span>
+      <span class="hud-value" id="statTracked">&mdash;</span>
+    </div>
+    <div class="hud-card hud-card--warn">
+      <span class="hud-label">Active Alerts</span>
+      <span class="hud-value" id="statAlerts">&mdash;</span>
+    </div>
+    <div class="hud-card hud-card--danger">
+      <span class="hud-label">High Risk Processes</span>
+      <span class="hud-value" id="statHighRisk">&mdash;</span>
+    </div>
+  </section>
+
+  <!-- Risk distribution + process table -->
+  <section class="panel panel--donut">
+    <h2 class="panel-title">Risk Distribution</h2>
+    <canvas id="riskChart" width="220" height="220"></canvas>
+    <ul class="legend">
+      <li><span class="dot dot--low"></span>Low</li>
+      <li><span class="dot dot--medium"></span>Medium</li>
+      <li><span class="dot dot--high"></span>High</li>
+    </ul>
+  </section>
+
+  <section class="panel panel--table">
+    <h2 class="panel-title">Process Threat Levels</h2>
+    <div class="table-scroll">
+      <table id="processTable">
+        <thead>
+          <tr>
+            <th>PID</th>
+            <th>Process</th>
+            <th>Score</th>
+            <th>Level</th>
+            <th>Reasons</th>
+            <th>Virus Scan</th>
+          </tr>
+        </thead>
+        <tbody id="processTableBody">
+          <tr><td colspan="6" class="empty-row">Waiting for data&hellip;</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Event log + alerts -->
+  <section class="panel panel--log">
+    <h2 class="panel-title">Recent Events</h2>
+    <div class="log-feed" id="eventFeed">
+      <div class="log-line log-line--muted">Waiting for events&hellip;</div>
+    </div>
+  </section>
+
+  <section class="panel panel--alerts">
+    <h2 class="panel-title">Threat History &amp; Alerts</h2>
+    <div class="alert-feed" id="alertFeed">
+      <div class="alert-empty">No alerts yet. All clear.</div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  Educational defensive-security project &middot; not a replacement for commercial antivirus/EDR software
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

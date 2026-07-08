@@ -1,0 +1,85 @@
+"""
+app.py
+-------
+Module 7 - Dashboard (Flask backend).
+
+Serves the dashboard HTML page and a small JSON API that the
+frontend (static/js/dashboard.js) polls to update the charts and
+tables in real time.
+"""
+
+import os
+import time
+import psutil
+from flask import Flask, jsonify, render_template, Response
+
+import database
+import report_generator
+from monitor_engine import MonitorEngine
+
+app = Flask(__name__)
+
+engine = MonitorEngine()
+
+
+@app.route("/")
+def dashboard():
+    return render_template("dashboard.html")
+
+
+@app.route("/api/summary")
+def api_summary():
+    processes = database.get_all_process_risk()
+    dist = database.get_risk_distribution()
+    high_risk = [p for p in processes if p["threat_level"] == "High"]
+
+    return jsonify({
+        "total_running_processes": len(psutil.pids()),
+        "tracked_processes": len(processes),
+        "active_alerts": len(database.get_recent_alerts(limit=1000)),
+        "high_risk_count": len(high_risk),
+        "risk_distribution": dist,
+    })
+
+
+@app.route("/api/processes")
+def api_processes():
+    return jsonify(database.get_all_process_risk())
+
+
+@app.route("/api/events")
+def api_events():
+    return jsonify(database.get_recent_events(limit=50))
+
+
+@app.route("/api/alerts")
+def api_alerts():
+    return jsonify(database.get_recent_alerts(limit=20))
+
+
+@app.route("/report/csv")
+def report_csv():
+    csv_data = report_generator.generate_csv()
+    filename = f"sentinel_report_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.route("/report/pdf")
+def report_pdf():
+    pdf_bytes = report_generator.generate_pdf()
+    filename = f"sentinel_report_{time.strftime('%Y%m%d_%H%M%S')}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+if __name__ == "__main__":
+    os.makedirs("data", exist_ok=True)
+    engine.start()
+    app.run(debug=False, host="127.0.0.1", port=5000)

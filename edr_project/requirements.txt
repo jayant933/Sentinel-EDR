@@ -1,0 +1,5 @@
+Flask==3.0.3
+psutil==6.0.0
+watchdog==4.0.1
+reportlab==4.2.2
+plyer==2.1.0
