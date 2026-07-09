@@ -18,6 +18,7 @@ import database
 import process_monitor
 import file_monitor
 import network_monitor
+import domain_monitor
 import behavior_engine
 import virus_scan
 
@@ -39,6 +40,9 @@ class MonitorEngine:
     def start(self):
         database.init_db()
         database.seed_known_hashes(virus_scan.DEFAULT_KNOWN_HASHES)
+        database.seed_known_domains({
+            "testsafebrowsing.appspot.com": "Google Safe Browsing test domain (safe, for demo purposes)",
+        })
 
         process_monitor.prime()
         self._observer = file_monitor.start_watching(self.watch_paths)
@@ -93,6 +97,11 @@ class MonitorEngine:
         per_process_conns, flagged_pids = network_monitor.snapshot()
         if flagged_pids:
             behavior_engine.score_network_flags(flagged_pids, per_process_conns)
+
+        # 3b. Website/domain monitor (which sites browsers are talking to)
+        website_events = domain_monitor.snapshot()
+        if website_events:
+            behavior_engine.score_websites(website_events)
 
         # Housekeeping: drop tracked processes that have exited
         database.cleanup_stale_processes(active_pids)

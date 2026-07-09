@@ -115,6 +115,26 @@ async function handleQuarantine(pid, name) {
   }
 }
 
+async function refreshWebsites() {
+  const sites = await fetchJSON('/api/websites');
+  const tbody = document.getElementById('websiteTableBody');
+
+  if (!sites.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-row">No browser activity detected yet&hellip;</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sites.map(s => `
+    <tr>
+      <td>${escapeHtml(s.domain)}</td>
+      <td><span class="badge badge--${s.risk_level}">${s.risk_level}</span></td>
+      <td>${escapeHtml(s.process_name)}</td>
+      <td>${escapeHtml(s.reason)}</td>
+      <td>${s.visit_count}</td>
+    </tr>
+  `).join('');
+}
+
 const TYPE_LABEL = { process: 'PROC', file: 'FILE', network: 'NET', virus: 'VIRUS' };
 
 async function refreshEvents() {
@@ -164,7 +184,7 @@ function escapeHtml(str) {
 
 async function tick() {
   try {
-    await Promise.all([refreshSummary(), refreshProcesses(), refreshEvents(), refreshAlerts()]);
+    await Promise.all([refreshSummary(), refreshProcesses(), refreshWebsites(), refreshEvents(), refreshAlerts()]);
     setStatus(true);
   } catch (err) {
     console.error(err);

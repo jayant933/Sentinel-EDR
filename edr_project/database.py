@@ -76,6 +76,26 @@ def init_db():
         """)
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS known_malicious_domains (
+                domain TEXT PRIMARY KEY,
+                label TEXT
+            )
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS website_activity (
+                domain TEXT PRIMARY KEY,
+                process_name TEXT,
+                pid INTEGER,
+                first_seen REAL,
+                last_seen REAL,
+                visit_count INTEGER DEFAULT 1,
+                risk_level TEXT DEFAULT 'Low',
+                reason TEXT DEFAULT ''
+            )
+        """)
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS alerts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp REAL NOT NULL,
@@ -105,6 +125,54 @@ def is_known_malware(sha256_hash):
         )
         row = cur.fetchone()
         return row["label"] if row else None
+
+
+def seed_known_domains(domain_map):
+    """domain_map: dict of {domain: label}. Used to preload test signatures."""
+    with get_cursor(commit=True) as cur:
+        for d, label in domain_map.items():
+            cur.execute(
+                "INSERT OR IGNORE INTO known_malicious_domains (domain, label) VALUES (?, ?)",
+                (d, label),
+            )
+
+
+def is_known_malicious_domain(domain):
+    with get_cursor() as cur:
+        cur.execute(
+            "SELECT label FROM known_malicious_domains WHERE domain = ?",
+            (domain,),
+        )
+        row = cur.fetchone()
+        return row["label"] if row else None
+
+
+def upsert_website(domain, pid, process_name, risk_level, reason):
+    now = time.time()
+    with get_cursor(commit=True) as cur:
+        cur.execute("SELECT * FROM website_activity WHERE domain = ?", (domain,))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                """INSERT INTO website_activity
+                   (domain, process_name, pid, first_seen, last_seen, visit_count, risk_level, reason)
+                   VALUES (?, ?, ?, ?, ?, 1, ?, ?)""",
+                (domain, process_name, pid, now, now, risk_level, reason),
+            )
+        else:
+            cur.execute(
+                """UPDATE website_activity
+                   SET last_seen = ?, visit_count = visit_count + 1, process_name = ?, pid = ?,
+                       risk_level = ?, reason = ?
+                   WHERE domain = ?""",
+                (now, process_name, pid, risk_level, reason, domain),
+            )
+
+
+def get_all_websites():
+    with get_cursor() as cur:
+        cur.execute("SELECT * FROM website_activity ORDER BY last_seen DESC")
+        return [dict(r) for r in cur.fetchall()]
 
 
 def log_event(pid, process_name, event_type, detail, risk_points=0):

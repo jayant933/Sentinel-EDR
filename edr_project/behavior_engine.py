@@ -117,13 +117,27 @@ def score_virus_result(pid, name, scan_result):
     return None
 
 
+def score_websites(website_events):
+    """
+    website_events: list of dicts from domain_monitor.snapshot()
+    Classifies each visited domain and stores/updates it in the
+    website_activity table (separate from process risk tracking).
+    """
+    import domain_monitor
+
+    for ev in website_events:
+        risk_level, reason = domain_monitor.classify_domain(ev["domain"])
+        database.upsert_website(ev["domain"], ev["pid"], ev["process_name"], risk_level, reason)
+
+        if risk_level == "High":
+            msg = f"High-risk website contacted: {ev['domain']} (via {ev['process_name']})"
+            database.log_event(ev["pid"], ev["process_name"], "network", msg, 30)
+            database.create_alert(ev["pid"], ev["process_name"], "High", msg)
+            notifier.notify("High-risk website", msg, "High", dedupe_key=f"site_{ev['domain']}")
+
+
 def raise_alert_if_needed(pid, name, score):
     """Fire a dashboard alert (and desktop notification) when a process crosses into Medium/High risk."""
     if score > 60:
         msg = f"{name} (pid {pid}) reached High risk (score {score})"
         database.create_alert(pid, name, "High", msg)
-        notifier.notify(f"High risk process: {name}", msg, "High", dedupe_key=f"risk_{pid}")
-    elif score > 30:
-        msg = f"{name} (pid {pid}) reached Medium risk (score {score})"
-        database.create_alert(pid, name, "Medium", msg)
-        notifier.notify(f"Medium risk process: {name}", msg, "Medium", dedupe_key=f"risk_{pid}")

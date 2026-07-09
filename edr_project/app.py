@@ -58,6 +58,11 @@ def api_alerts():
     return jsonify(database.get_recent_alerts(limit=20))
 
 
+@app.route("/api/websites")
+def api_websites():
+    return jsonify(database.get_all_websites())
+
+
 @app.route("/report/csv")
 def report_csv():
     csv_data = report_generator.generate_csv()

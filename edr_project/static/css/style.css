@@ -196,6 +196,8 @@ body {
 
 .panel--table { grid-column: 2; }
 
+.panel--websites { grid-column: 2; }
+
 .table-scroll { max-height: 300px; overflow-y: auto; }
 
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -289,6 +291,6 @@ td {
 
 @media (max-width: 860px) {
   .grid { grid-template-columns: 1fr; }
-  .panel--donut, .panel--table, .panel--log, .panel--alerts { grid-column: 1; }
+  .panel--donut, .panel--table, .panel--websites, .panel--log, .panel--alerts { grid-column: 1; }
   .hud-row { grid-template-columns: repeat(2, 1fr); }
 }
