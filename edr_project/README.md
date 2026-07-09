@@ -1,4 +1,4 @@
-# SENTINEL — Mini Endpoint Detection & Response (EDR) System
+# SENTINEL — Endpoint Detection & Response (EDR) System
 
 An educational, defensive-security project that monitors a computer in
 real time, detects suspicious process/file/network behavior, does
