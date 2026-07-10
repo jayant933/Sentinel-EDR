@@ -126,4 +126,9 @@ def api_quarantine(pid):
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     engine.start()
-    app.run(debug=False, host="127.0.0.1", port=5000)
+    app.run(
+    debug=False,
+    host="127.0.0.1",
+    port=5000,
+    ssl_context=("localhost+2.pem", "localhost+2-key.pem")
+)

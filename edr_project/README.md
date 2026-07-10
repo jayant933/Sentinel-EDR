@@ -42,6 +42,10 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
+Open in browser:
+
+http://127.0.0.1:5000
+
 ### Linux / macOS
 
 ```bash
@@ -51,18 +55,15 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-Then open **http://127.0.0.1:5000** in your browser. The monitoring
-engine starts automatically in a background thread when the Flask app
-launches — no separate process to start.
+Open in browser:
 
-By default the file monitor watches your home directory. To watch
-different folders, set an environment variable before running, or
-edit `DEFAULT_WATCH_PATHS` in `monitor_engine.py`:
+http://127.0.0.1:5000
 
-```bash
-# not currently read from env automatically — edit monitor_engine.py's
-# DEFAULT_WATCH_PATHS list, or pass watch_paths=[...] to MonitorEngine()
-```
+## Optional: HTTPS for Local Development
+
+If you configure a local SSL certificate (for example, using `mkcert`), you can run the application over HTTPS and access it at:
+
+https://localhost:5000
 
 ## Testing virus detection
 

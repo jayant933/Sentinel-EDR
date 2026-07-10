@@ -22,3 +22,6 @@ Thumbs.db
 
 # Email credentials - NEVER commit real credentials
 email_config.py
+
+localhost+2.pem
+localhost+2-key.pem
