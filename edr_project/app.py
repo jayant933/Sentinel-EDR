@@ -11,7 +11,7 @@ tables in real time.
 import os
 import time
 import psutil
-from flask import Flask, jsonify, render_template, Response
+from flask import Flask, jsonify, render_template, Response, request
 
 import database
 import report_generator
@@ -61,6 +61,32 @@ def api_alerts():
 @app.route("/api/websites")
 def api_websites():
     return jsonify(database.get_all_websites())
+
+
+@app.route("/api/whitelist", methods=["GET"])
+def api_get_whitelist():
+    return jsonify(database.get_whitelist())
+
+
+@app.route("/api/whitelist", methods=["POST"])
+def api_add_whitelist():
+    data = request.get_json(silent=True) or {}
+    process_name = (data.get("process_name") or "").strip()
+    if not process_name:
+        return jsonify({"success": False, "message": "process_name is required"}), 400
+    database.add_to_whitelist(process_name)
+    return jsonify({"success": True, "message": f"'{process_name}' added to whitelist"})
+
+
+@app.route("/api/whitelist/<process_name>", methods=["DELETE"])
+def api_remove_whitelist(process_name):
+    database.remove_from_whitelist(process_name)
+    return jsonify({"success": True, "message": f"'{process_name}' removed from whitelist"})
+
+
+@app.route("/api/history")
+def api_history():
+    return jsonify(database.get_risk_history(limit=100))
 
 
 @app.route("/report/csv")

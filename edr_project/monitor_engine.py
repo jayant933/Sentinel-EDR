@@ -105,3 +105,6 @@ class MonitorEngine:
 
         # Housekeeping: drop tracked processes that have exited
         database.cleanup_stale_processes(active_pids)
+
+        # Record a point-in-time snapshot for the historical trend chart
+        database.record_risk_snapshot()

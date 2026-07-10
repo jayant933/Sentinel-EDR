@@ -1,6 +1,7 @@
 const POLL_MS = 3000;
 
 let riskChart;
+let historyChart;
 
 function initChart() {
   const ctx = document.getElementById('riskChart').getContext('2d');
@@ -18,6 +19,28 @@ function initChart() {
       cutout: '68%',
       plugins: { legend: { display: false } },
       responsive: true,
+    }
+  });
+
+  const hctx = document.getElementById('historyChart').getContext('2d');
+  historyChart = new Chart(hctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Low', data: [], borderColor: '#35C87B', backgroundColor: 'rgba(53,200,123,0.08)', tension: 0.3, fill: true, pointRadius: 0 },
+        { label: 'Medium', data: [], borderColor: '#F0A93B', backgroundColor: 'rgba(240,169,59,0.08)', tension: 0.3, fill: true, pointRadius: 0 },
+        { label: 'High', data: [], borderColor: '#FF4D5E', backgroundColor: 'rgba(255,77,94,0.08)', tension: 0.3, fill: true, pointRadius: 0 },
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { ticks: { color: '#8A94A0', maxTicksLimit: 8 }, grid: { color: '#262C33' } },
+        y: { beginAtZero: true, ticks: { color: '#8A94A0', precision: 0 }, grid: { color: '#262C33' } },
+      },
+      plugins: { legend: { labels: { color: '#8A94A0', boxWidth: 12 } } },
     }
   });
 }
@@ -57,6 +80,17 @@ async function refreshSummary() {
   riskChart.update();
 }
 
+async function refreshHistory() {
+  const points = await fetchJSON('/api/history');
+  if (!points.length) return;
+
+  historyChart.data.labels = points.map(p => new Date(p.timestamp * 1000).toLocaleTimeString());
+  historyChart.data.datasets[0].data = points.map(p => p.low_count);
+  historyChart.data.datasets[1].data = points.map(p => p.medium_count);
+  historyChart.data.datasets[2].data = points.map(p => p.high_count);
+  historyChart.update();
+}
+
 async function refreshProcesses() {
   const rows = await fetchJSON('/api/processes');
   const tbody = document.getElementById('processTableBody');
@@ -80,10 +114,12 @@ async function refreshProcesses() {
 }
 
 function quarantineButtonHtml(r) {
+  const trustBtn = `<button class="trust-btn" onclick="handleAddWhitelistFromRow('${escapeHtml(r.process_name).replace(/'/g, "\\'")}')">Trust</button>`;
   if (r.threat_level === 'Low') {
-    return '<span class="quarantine-na">&mdash;</span>';
+    return `<span class="quarantine-na">&mdash;</span> ${trustBtn}`;
   }
-  return `<button class="quarantine-btn" onclick="handleQuarantine(${r.pid}, '${escapeHtml(r.process_name).replace(/'/g, "\\'")}')">Quarantine</button>`;
+  const quarantineBtn = `<button class="quarantine-btn" onclick="handleQuarantine(${r.pid}, '${escapeHtml(r.process_name).replace(/'/g, "\\'")}')">Quarantine</button>`;
+  return `${quarantineBtn} ${trustBtn}`;
 }
 
 async function handleQuarantine(pid, name) {
@@ -111,6 +147,62 @@ async function handleQuarantine(pid, name) {
     tick(); // refresh dashboard immediately
   } catch (err) {
     alert('Quarantine request failed. See console for details.');
+    console.error(err);
+  }
+}
+
+async function refreshWhitelist() {
+  const items = await fetchJSON('/api/whitelist');
+  const tbody = document.getElementById('whitelistTableBody');
+
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="2" class="empty-row">No trusted apps added yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(w => `
+    <tr>
+      <td>${escapeHtml(w.process_name)}</td>
+      <td><button class="untrust-btn" onclick="handleRemoveWhitelist('${escapeHtml(w.process_name).replace(/'/g, "\\'")}')">Remove</button></td>
+    </tr>
+  `).join('');
+}
+
+async function handleAddWhitelist() {
+  const input = document.getElementById('whitelistInput');
+  const name = input.value.trim();
+  if (!name) return;
+  await addToWhitelist(name);
+  input.value = '';
+}
+
+async function handleAddWhitelistFromRow(name) {
+  if (!confirm(`Mark "${name}" as trusted? It will stop being flagged/monitored for risk.`)) return;
+  await addToWhitelist(name);
+}
+
+async function addToWhitelist(name) {
+  try {
+    const res = await fetch('/api/whitelist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ process_name: name }),
+    });
+    const data = await res.json();
+    if (!data.success) alert(data.message);
+    tick();
+  } catch (err) {
+    alert('Could not add to whitelist.');
+    console.error(err);
+  }
+}
+
+async function handleRemoveWhitelist(name) {
+  try {
+    await fetch(`/api/whitelist/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    tick();
+  } catch (err) {
+    alert('Could not remove from whitelist.');
     console.error(err);
   }
 }
@@ -184,7 +276,10 @@ function escapeHtml(str) {
 
 async function tick() {
   try {
-    await Promise.all([refreshSummary(), refreshProcesses(), refreshWebsites(), refreshEvents(), refreshAlerts()]);
+    await Promise.all([
+      refreshSummary(), refreshProcesses(), refreshWebsites(),
+      refreshEvents(), refreshAlerts(), refreshHistory(), refreshWhitelist(),
+    ]);
     setStatus(true);
   } catch (err) {
     console.error(err);

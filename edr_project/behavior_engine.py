@@ -21,6 +21,7 @@ scoring table from the project spec:
 import time
 import database
 import notifier
+import email_alerts
 
 POINTS = {
     "new_process": 20,
@@ -48,6 +49,9 @@ _file_event_times = []
 
 def score_process_flags(pid, name, flags):
     """Apply process-level flags (new_process, high_cpu, high_memory)."""
+    if database.is_whitelisted(name):
+        return 0
+
     total_added = 0
     for flag in flags:
         pts = POINTS.get(flag, 0)
@@ -96,6 +100,8 @@ def score_network_flags(flagged_pids, per_process_conns):
     for pid in flagged_pids:
         import network_monitor
         name = network_monitor.process_name_for_pid(pid)
+        if database.is_whitelisted(name):
+            continue
         n_conns = len(per_process_conns.get(pid, []))
         detail = f"{REASON_LABELS['many_network_conns']} ({n_conns} active)"
         database.log_event(pid, name, "network", detail, POINTS["many_network_conns"])
@@ -113,6 +119,7 @@ def score_virus_result(pid, name, scan_result):
         msg = f"Known malware signature detected: {label}"
         database.create_alert(pid, name, "High", msg)
         notifier.notify(f"Malware detected: {name}", msg, "High", dedupe_key=f"virus_{pid}")
+        email_alerts.send_alert(f"Malware detected: {name}", msg, dedupe_key=f"virus_{pid}")
         return with_score
     return None
 
@@ -134,10 +141,17 @@ def score_websites(website_events):
             database.log_event(ev["pid"], ev["process_name"], "network", msg, 30)
             database.create_alert(ev["pid"], ev["process_name"], "High", msg)
             notifier.notify("High-risk website", msg, "High", dedupe_key=f"site_{ev['domain']}")
+            email_alerts.send_alert("High-risk website contacted", msg, dedupe_key=f"site_{ev['domain']}")
 
 
 def raise_alert_if_needed(pid, name, score):
-    """Fire a dashboard alert (and desktop notification) when a process crosses into Medium/High risk."""
+    """Fire a dashboard alert (and desktop notification / email) when a process crosses into Medium/High risk."""
     if score > 60:
         msg = f"{name} (pid {pid}) reached High risk (score {score})"
         database.create_alert(pid, name, "High", msg)
+        notifier.notify(f"High risk process: {name}", msg, "High", dedupe_key=f"risk_{pid}")
+        email_alerts.send_alert(f"High risk process: {name}", msg, dedupe_key=f"risk_{pid}")
+    elif score > 30:
+        msg = f"{name} (pid {pid}) reached Medium risk (score {score})"
+        database.create_alert(pid, name, "Medium", msg)
+        notifier.notify(f"Medium risk process: {name}", msg, "Medium", dedupe_key=f"risk_{pid}")

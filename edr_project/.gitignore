@@ -19,3 +19,6 @@ Thumbs.db
 # IDE
 .vscode/
 *.code-workspace
+
+# Email credentials - NEVER commit real credentials
+email_config.py

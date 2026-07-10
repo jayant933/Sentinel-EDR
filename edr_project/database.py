@@ -106,6 +106,24 @@ def init_db():
             )
         """)
 
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS whitelist (
+                process_name TEXT PRIMARY KEY,
+                added_at REAL
+            )
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS risk_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp REAL NOT NULL,
+                low_count INTEGER DEFAULT 0,
+                medium_count INTEGER DEFAULT 0,
+                high_count INTEGER DEFAULT 0,
+                total_alerts INTEGER DEFAULT 0
+            )
+        """)
+
 
 def seed_known_hashes(hash_map):
     """hash_map: dict of {sha256: label}. Used to preload test signatures."""
@@ -277,3 +295,65 @@ def cleanup_stale_processes(active_pids):
         stale = [p for p in tracked if p not in active_pids]
         for p in stale:
             cur.execute("DELETE FROM process_risk WHERE pid = ?", (p,))
+
+
+# ---------------------------------------------------------------- Whitelist ----
+
+def add_to_whitelist(process_name):
+    clean = process_name.strip().lower()
+    with get_cursor(commit=True) as cur:
+        cur.execute(
+            "INSERT OR IGNORE INTO whitelist (process_name, added_at) VALUES (?, ?)",
+            (clean, time.time()),
+        )
+        # A trusted process shouldn't linger in the flagged-process table either.
+        cur.execute("DELETE FROM process_risk WHERE LOWER(process_name) = ?", (clean,))
+
+
+def remove_from_whitelist(process_name):
+    clean = process_name.strip().lower()
+    with get_cursor(commit=True) as cur:
+        cur.execute("DELETE FROM whitelist WHERE process_name = ?", (clean,))
+
+
+def is_whitelisted(process_name):
+    if not process_name:
+        return False
+    clean = process_name.strip().lower()
+    with get_cursor() as cur:
+        cur.execute("SELECT 1 FROM whitelist WHERE process_name = ?", (clean,))
+        return cur.fetchone() is not None
+
+
+def get_whitelist():
+    with get_cursor() as cur:
+        cur.execute("SELECT * FROM whitelist ORDER BY added_at DESC")
+        return [dict(r) for r in cur.fetchall()]
+
+
+# ---------------------------------------------------------------- Risk history ----
+
+def record_risk_snapshot():
+    """Called periodically by the monitor loop to log a point-in-time
+    summary of the risk distribution, powering the historical trend chart."""
+    dist = get_risk_distribution()
+    total_alerts = len(get_recent_alerts(limit=100000))
+    with get_cursor(commit=True) as cur:
+        cur.execute(
+            """INSERT INTO risk_history (timestamp, low_count, medium_count, high_count, total_alerts)
+               VALUES (?, ?, ?, ?, ?)""",
+            (time.time(), dist.get("Low", 0), dist.get("Medium", 0), dist.get("High", 0), total_alerts),
+        )
+        # Keep the table from growing forever - retain the most recent 500 points.
+        cur.execute("""
+            DELETE FROM risk_history WHERE id NOT IN (
+                SELECT id FROM risk_history ORDER BY id DESC LIMIT 500
+            )
+        """)
+
+
+def get_risk_history(limit=100):
+    with get_cursor() as cur:
+        cur.execute("SELECT * FROM risk_history ORDER BY id DESC LIMIT ?", (limit,))
+        rows = [dict(r) for r in cur.fetchall()]
+        return list(reversed(rows))  # chronological order for charting
