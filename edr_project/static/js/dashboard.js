@@ -274,6 +274,18 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+function toggleProfileMenu() {
+  const dropdown = document.getElementById('profileDropdown');
+  dropdown.classList.toggle('profile-dropdown--open');
+}
+
+document.addEventListener('click', (e) => {
+  const corner = document.querySelector('.profile-corner');
+  if (corner && !corner.contains(e.target)) {
+    document.getElementById('profileDropdown')?.classList.remove('profile-dropdown--open');
+  }
+});
+
 async function loadProfile() {
   try {
     const p = await fetchJSON('/api/profile');
@@ -305,8 +317,8 @@ async function handleSaveProfile() {
     statusEl.textContent = data.message;
     statusEl.className = data.success ? 'settings-status settings-status--ok' : 'settings-status settings-status--error';
     if (data.success) {
-      const nameEl = document.getElementById('welcomeNameDisplay');
-      if (nameEl) nameEl.textContent = `Welcome, ${username}`;
+      const avatarBtn = document.getElementById('profileAvatarBtn');
+      if (avatarBtn) avatarBtn.textContent = username[0].toUpperCase();
     }
   } catch (err) {
     statusEl.textContent = 'Failed to save profile.';

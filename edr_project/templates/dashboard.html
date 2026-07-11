@@ -20,7 +20,6 @@
     </svg>
     <span class="brand-name">SENTINEL</span>
     <span class="brand-sub">Endpoint Threat Monitor</span>
-    {% if profile %}<span class="brand-sub" id="welcomeNameDisplay">Welcome, {{ profile.username }}</span>{% endif %}
   </div>
   <div class="status">
     <span class="status-dot" id="statusDot"></span>
@@ -28,6 +27,28 @@
     <span class="status-clock" id="clock">--:--:--</span>
     <a class="report-btn" href="/report/csv">Export CSV</a>
     <a class="report-btn report-btn--primary" href="/report/pdf">Export PDF</a>
+
+    {% if profile %}
+    <div class="profile-corner">
+      <button class="profile-avatar" id="profileAvatarBtn" onclick="toggleProfileMenu()" title="Edit profile">
+        {{ profile.username[0]|upper }}
+      </button>
+      <div class="profile-dropdown" id="profileDropdown">
+        <div class="settings-form">
+          <label>Name
+            <input type="text" id="profileUsername" placeholder="Your name" />
+          </label>
+          <label>Email
+            <input type="email" id="profileEmail" placeholder="you@example.com" />
+          </label>
+          <div class="settings-actions">
+            <button class="report-btn report-btn--primary" onclick="handleSaveProfile()">Save</button>
+          </div>
+          <div id="profileStatus" class="settings-status"></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </header>
 
@@ -111,23 +132,6 @@
           <tr><td colspan="2" class="empty-row">No trusted apps added yet.</td></tr>
         </tbody>
       </table>
-    </div>
-  </section>
-
-  <!-- My Profile -->
-  <section class="panel panel--profile">
-    <h2 class="panel-title">My Profile</h2>
-    <div class="settings-form">
-      <label>Name
-        <input type="text" id="profileUsername" placeholder="Your name" />
-      </label>
-      <label>Email
-        <input type="email" id="profileEmail" placeholder="you@example.com" />
-      </label>
-      <div class="settings-actions">
-        <button class="report-btn report-btn--primary" onclick="handleSaveProfile()">Save</button>
-      </div>
-      <div id="profileStatus" class="settings-status"></div>
     </div>
   </section>
 
