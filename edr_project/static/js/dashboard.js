@@ -274,6 +274,46 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+async function loadProfile() {
+  try {
+    const p = await fetchJSON('/api/profile');
+    document.getElementById('profileUsername').value = p.username || '';
+    document.getElementById('profileEmail').value = p.email || '';
+  } catch (err) {
+    console.error('Could not load profile', err);
+  }
+}
+
+async function handleSaveProfile() {
+  const statusEl = document.getElementById('profileStatus');
+  const username = document.getElementById('profileUsername').value.trim();
+  const email = document.getElementById('profileEmail').value.trim();
+
+  if (!username || !email) {
+    statusEl.textContent = 'Please fill in both fields.';
+    statusEl.className = 'settings-status settings-status--error';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email }),
+    });
+    const data = await res.json();
+    statusEl.textContent = data.message;
+    statusEl.className = data.success ? 'settings-status settings-status--ok' : 'settings-status settings-status--error';
+    if (data.success) {
+      const nameEl = document.getElementById('welcomeNameDisplay');
+      if (nameEl) nameEl.textContent = `Welcome, ${username}`;
+    }
+  } catch (err) {
+    statusEl.textContent = 'Failed to save profile.';
+    statusEl.className = 'settings-status settings-status--error';
+  }
+}
+
 async function loadEmailSettings() {
   try {
     const s = await fetchJSON('/api/email_settings');
@@ -343,6 +383,7 @@ async function tick() {
 
 initChart();
 updateClock();
+loadProfile();
 loadEmailSettings();
 tick();
 setInterval(tick, POLL_MS);
