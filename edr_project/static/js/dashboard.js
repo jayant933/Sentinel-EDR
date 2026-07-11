@@ -274,6 +274,60 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+async function loadEmailSettings() {
+  try {
+    const s = await fetchJSON('/api/email_settings');
+    document.getElementById('emailEnabled').checked = s.enabled;
+    document.getElementById('emailSender').value = s.sender_email || '';
+    document.getElementById('emailPassword').value = s.sender_app_password || '';
+    document.getElementById('emailRecipient').value = s.recipient_email || '';
+  } catch (err) {
+    console.error('Could not load email settings', err);
+  }
+}
+
+async function handleSaveEmailSettings() {
+  const statusEl = document.getElementById('emailSettingsStatus');
+  const payload = {
+    enabled: document.getElementById('emailEnabled').checked,
+    smtp_server: 'smtp.gmail.com',
+    smtp_port: 587,
+    sender_email: document.getElementById('emailSender').value.trim(),
+    sender_app_password: document.getElementById('emailPassword').value.trim(),
+    recipient_email: document.getElementById('emailRecipient').value.trim(),
+  };
+
+  try {
+    const res = await fetch('/api/email_settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    statusEl.textContent = data.message;
+    statusEl.className = 'settings-status settings-status--ok';
+  } catch (err) {
+    statusEl.textContent = 'Failed to save settings.';
+    statusEl.className = 'settings-status settings-status--error';
+  }
+}
+
+async function handleTestEmail() {
+  const statusEl = document.getElementById('emailSettingsStatus');
+  statusEl.textContent = 'Sending test email…';
+  statusEl.className = 'settings-status';
+
+  try {
+    const res = await fetch('/api/email_settings/test', { method: 'POST' });
+    const data = await res.json();
+    statusEl.textContent = data.message;
+    statusEl.className = data.success ? 'settings-status settings-status--ok' : 'settings-status settings-status--error';
+  } catch (err) {
+    statusEl.textContent = 'Failed to send test email.';
+    statusEl.className = 'settings-status settings-status--error';
+  }
+}
+
 async function tick() {
   try {
     await Promise.all([
@@ -289,6 +343,7 @@ async function tick() {
 
 initChart();
 updateClock();
+loadEmailSettings();
 tick();
 setInterval(tick, POLL_MS);
 setInterval(updateClock, 1000);

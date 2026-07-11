@@ -113,6 +113,35 @@
     </div>
   </section>
 
+  <!-- Email alert settings -->
+  <section class="panel panel--emailsettings">
+    <h2 class="panel-title">Email Alerts</h2>
+    <div class="settings-form">
+      <label class="settings-toggle">
+        <input type="checkbox" id="emailEnabled" />
+        <span>Enable email alerts</span>
+      </label>
+
+      <label>Your email (sender)
+        <input type="email" id="emailSender" placeholder="youraddress@gmail.com" />
+      </label>
+
+      <label>App Password <span class="settings-hint">(not your normal password - see README)</span>
+        <input type="password" id="emailPassword" placeholder="16-character App Password" />
+      </label>
+
+      <label>Alert recipient
+        <input type="email" id="emailRecipient" placeholder="youraddress@gmail.com" />
+      </label>
+
+      <div class="settings-actions">
+        <button class="report-btn report-btn--primary" onclick="handleSaveEmailSettings()">Save</button>
+        <button class="report-btn" onclick="handleTestEmail()">Send test email</button>
+      </div>
+      <div id="emailSettingsStatus" class="settings-status"></div>
+    </div>
+  </section>
+
   <!-- Website activity -->
   <section class="panel panel--websites">
     <h2 class="panel-title">Website Activity</h2>

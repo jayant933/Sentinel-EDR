@@ -16,6 +16,7 @@ from flask import Flask, jsonify, render_template, Response, request
 import database
 import report_generator
 import quarantine
+import email_alerts
 from monitor_engine import MonitorEngine
 
 app = Flask(__name__)
@@ -87,6 +88,41 @@ def api_remove_whitelist(process_name):
 @app.route("/api/history")
 def api_history():
     return jsonify(database.get_risk_history(limit=100))
+
+
+@app.route("/api/email_settings", methods=["GET"])
+def api_get_email_settings():
+    settings = database.get_email_settings()
+    # Never send the password back to the browser - blank means "unchanged"
+    settings["sender_app_password"] = "" if not settings["sender_app_password"] else "••••••••••••••••"
+    return jsonify(settings)
+
+
+@app.route("/api/email_settings", methods=["POST"])
+def api_save_email_settings():
+    data = request.get_json(silent=True) or {}
+
+    # If the password field was left as the masked placeholder, keep the existing one.
+    existing = database.get_email_settings()
+    incoming_password = data.get("sender_app_password", "")
+    password = existing["sender_app_password"] if incoming_password.startswith("•") else incoming_password
+
+    database.save_email_settings(
+        enabled=bool(data.get("enabled", False)),
+        smtp_server=data.get("smtp_server", "smtp.gmail.com").strip(),
+        smtp_port=int(data.get("smtp_port", 587)),
+        sender_email=data.get("sender_email", "").strip(),
+        sender_app_password=password.strip(),
+        recipient_email=data.get("recipient_email", "").strip(),
+    )
+    return jsonify({"success": True, "message": "Email settings saved."})
+
+
+@app.route("/api/email_settings/test", methods=["POST"])
+def api_test_email():
+    result = email_alerts.send_test_email()
+    status = 200 if result["success"] else 400
+    return jsonify(result), status
 
 
 @app.route("/report/csv")

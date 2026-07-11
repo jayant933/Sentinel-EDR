@@ -124,6 +124,18 @@ def init_db():
             )
         """)
 
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS email_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                enabled INTEGER DEFAULT 0,
+                smtp_server TEXT DEFAULT 'smtp.gmail.com',
+                smtp_port INTEGER DEFAULT 587,
+                sender_email TEXT DEFAULT '',
+                sender_app_password TEXT DEFAULT '',
+                recipient_email TEXT DEFAULT ''
+            )
+        """)
+
 
 def seed_known_hashes(hash_map):
     """hash_map: dict of {sha256: label}. Used to preload test signatures."""
@@ -357,3 +369,32 @@ def get_risk_history(limit=100):
         cur.execute("SELECT * FROM risk_history ORDER BY id DESC LIMIT ?", (limit,))
         rows = [dict(r) for r in cur.fetchall()]
         return list(reversed(rows))  # chronological order for charting
+
+
+# ---------------------------------------------------------------- Email settings ----
+
+def get_email_settings():
+    with get_cursor() as cur:
+        cur.execute("SELECT * FROM email_settings WHERE id = 1")
+        row = cur.fetchone()
+        if row is None:
+            return {
+                "enabled": False, "smtp_server": "smtp.gmail.com", "smtp_port": 587,
+                "sender_email": "", "sender_app_password": "", "recipient_email": "",
+            }
+        d = dict(row)
+        d["enabled"] = bool(d["enabled"])
+        return d
+
+
+def save_email_settings(enabled, smtp_server, smtp_port, sender_email, sender_app_password, recipient_email):
+    with get_cursor(commit=True) as cur:
+        cur.execute(
+            """INSERT INTO email_settings (id, enabled, smtp_server, smtp_port, sender_email, sender_app_password, recipient_email)
+               VALUES (1, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET
+                   enabled=excluded.enabled, smtp_server=excluded.smtp_server, smtp_port=excluded.smtp_port,
+                   sender_email=excluded.sender_email, sender_app_password=excluded.sender_app_password,
+                   recipient_email=excluded.recipient_email""",
+            (int(enabled), smtp_server, smtp_port, sender_email, sender_app_password, recipient_email),
+        )
