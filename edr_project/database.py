@@ -136,6 +136,15 @@ def init_db():
             )
         """)
 
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_profile (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                username TEXT NOT NULL,
+                email TEXT NOT NULL,
+                created_at REAL
+            )
+        """)
+
 
 def seed_known_hashes(hash_map):
     """hash_map: dict of {sha256: label}. Used to preload test signatures."""
@@ -398,3 +407,39 @@ def save_email_settings(enabled, smtp_server, smtp_port, sender_email, sender_ap
                    recipient_email=excluded.recipient_email""",
             (int(enabled), smtp_server, smtp_port, sender_email, sender_app_password, recipient_email),
         )
+
+
+# ---------------------------------------------------------------- User profile ----
+
+def has_profile():
+    with get_cursor() as cur:
+        cur.execute("SELECT 1 FROM user_profile WHERE id = 1")
+        return cur.fetchone() is not None
+
+
+def get_profile():
+    with get_cursor() as cur:
+        cur.execute("SELECT * FROM user_profile WHERE id = 1")
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def save_profile(username, email):
+    with get_cursor(commit=True) as cur:
+        cur.execute(
+            """INSERT INTO user_profile (id, username, email, created_at)
+               VALUES (1, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET username=excluded.username, email=excluded.email""",
+            (username.strip(), email.strip(), time.time()),
+        )
+        # Convenience: pre-fill the recipient email in Email Alert settings
+        # with the profile email, if none has been set yet.
+        cur.execute("SELECT recipient_email FROM email_settings WHERE id = 1")
+        row = cur.fetchone()
+        if row is None or not row["recipient_email"]:
+            cur.execute(
+                """INSERT INTO email_settings (id, recipient_email, sender_email)
+                   VALUES (1, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET recipient_email=excluded.recipient_email""",
+                (email.strip(), email.strip()),
+            )

@@ -20,6 +20,7 @@
     </svg>
     <span class="brand-name">SENTINEL</span>
     <span class="brand-sub">Endpoint Threat Monitor</span>
+    {% if profile %}<span class="brand-sub">Welcome, {{ profile.username }}</span>{% endif %}
   </div>
   <div class="status">
     <span class="status-dot" id="statusDot"></span>

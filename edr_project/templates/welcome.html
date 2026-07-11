@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL &mdash; Welcome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  .welcome-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .welcome-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: 14px;
+    padding: 40px 36px;
+    max-width: 420px;
+    width: 100%;
+  }
+  .welcome-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .welcome-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .welcome-subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 4px 0 28px 0;
+  }
+  .welcome-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .welcome-form input {
+    background: var(--bg-panel-alt);
+    border: 1px solid var(--border-hairline);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+  .welcome-form input:focus { outline: none; border-color: var(--accent-cyan); }
+  .welcome-submit {
+    width: 100%;
+    margin-top: 8px;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent-cyan);
+    color: #0B0D10;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .welcome-submit:hover { opacity: 0.9; }
+  .welcome-error {
+    color: var(--risk-high);
+    font-size: 12px;
+    margin-top: 10px;
+    min-height: 16px;
+  }
+  .welcome-note {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-top: 20px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="welcome-wrap">
+  <div class="welcome-card">
+    <div class="welcome-logo">
+      <svg width="26" height="26" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" opacity="0.4"/>
+        <circle cx="20" cy="20" r="12" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" opacity="0.7"/>
+        <circle cx="20" cy="20" r="3" fill="var(--accent-cyan)"/>
+      </svg>
+      <span class="welcome-title">SENTINEL</span>
+    </div>
+    <p class="welcome-subtitle">Endpoint Threat Monitor &mdash; let's get you set up.</p>
+
+    <form class="welcome-form" id="welcomeForm">
+      <label>Your name
+        <input type="text" id="username" placeholder="e.g. Jayant Sharma" required />
+      </label>
+      <label>Your email
+        <input type="email" id="email" placeholder="you@example.com" required />
+      </label>
+      <button type="submit" class="welcome-submit">Get Started</button>
+      <div class="welcome-error" id="welcomeError"></div>
+    </form>
+
+    <p class="welcome-note">
+      This is used to personalize your dashboard and as the default address for
+      email alerts (you can change or disable that later in Settings). Everything
+      is stored locally on this machine only.
+    </p>
+  </div>
+</div>
+
+<script>
+document.getElementById('welcomeForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const errorEl = document.getElementById('welcomeError');
+
+  if (!username || !email) {
+    errorEl.textContent = 'Please fill in both fields.';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      window.location.href = '/';
+    } else {
+      errorEl.textContent = data.message || 'Something went wrong.';
+    }
+  } catch (err) {
+    errorEl.textContent = 'Could not reach the server. Please try again.';
+  }
+});
+</script>
+
+</body>
+</html>

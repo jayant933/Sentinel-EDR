@@ -26,7 +26,28 @@ engine = MonitorEngine()
 
 @app.route("/")
 def dashboard():
-    return render_template("dashboard.html")
+    if not database.has_profile():
+        return render_template("welcome.html")
+    return render_template("dashboard.html", profile=database.get_profile())
+
+
+@app.route("/api/profile", methods=["GET"])
+def api_get_profile():
+    profile = database.get_profile()
+    return jsonify(profile or {})
+
+
+@app.route("/api/profile", methods=["POST"])
+def api_save_profile():
+    data = request.get_json(silent=True) or {}
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip()
+    if not username or not email:
+        return jsonify({"success": False, "message": "Name and email are required."}), 400
+    if "@" not in email or "." not in email:
+        return jsonify({"success": False, "message": "Please enter a valid email address."}), 400
+    database.save_profile(username, email)
+    return jsonify({"success": True, "message": "Profile saved."})
 
 
 @app.route("/api/summary")
