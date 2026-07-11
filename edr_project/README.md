@@ -10,18 +10,6 @@ practical demonstration of core EDR concepts.
 
 ---
 
-# SENTINEL — Mini Endpoint Detection & Response (EDR) System
-
-An educational, defensive-security project that monitors a computer in
-real time, detects suspicious process/file/network behavior, does
-basic signature-based virus detection, calculates a risk score, and
-shows everything on a live Flask dashboard.
-
-**This is not a replacement for a real antivirus/EDR product.** It's a
-practical demonstration of core EDR concepts.
-
----
-
 ## Features
 
 - **Process monitoring** (`process_monitor.py`) — tracks running processes, CPU/memory usage, flags new/unknown processes via `psutil`.
